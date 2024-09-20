@@ -92,6 +92,7 @@ struct int512_t {
 
    friend constexpr bool operator>=(const int512_t& a, const int512_t& b) { return !(a < b); }
 
+#ifdef __SIZEOF_INT128__
    static constexpr uint64_t shl128(uint64_t low, uint64_t high, int n) {
       __uint128_t v = (__uint128_t(high) << 64) | __uint128_t(low);
       return (v << (n & 63)) >> 64;
@@ -101,6 +102,19 @@ struct int512_t {
       __uint128_t v = (__uint128_t(high) << 64) | __uint128_t(low);
       return v >> (n & 63);
    }
+#else
+   static constexpr uint64_t shl128(uint64_t low, uint64_t high, int n) {
+      if (n == 0)
+         return high;
+      return (high << n) | (low >> (64 - n));
+   }
+
+   static constexpr uint64_t shr128(uint64_t low, uint64_t high, int n) {
+      if (n == 0)
+         return low;
+      return (low >> n) | (high << (64 - n));
+   }
+#endif
 
    friend constexpr int512_t operator<<(const int512_t& a, int n) {
       int512_t r{};

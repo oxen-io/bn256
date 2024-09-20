@@ -64,10 +64,40 @@ constexpr uint64_t mulx_u64(uint64_t a, uint64_t b, uint64_t* hi) noexcept {
       return r;
    }
 #endif
+
+#ifdef __SIZEOF_INT128__
    __uint128_t x = a;
    x *= b;
    *hi = static_cast<uint64_t>(x >> 64);
    return static_cast<uint64_t>(x & 0xFFFFFFFFFFFFFFFFULL);
+#else
+    uint64_t ahi = a >> 32;
+    uint64_t alo = a & 0xffffffff;
+    uint64_t bhi = b >> 32;
+    uint64_t blo = b & 0xffffffff;
+
+    uint64_t ll = alo * blo;
+    uint64_t hl = ahi * blo;
+    uint64_t lh = alo * bhi;
+    uint64_t hh = ahi * bhi;
+
+    unsigned long long carry_x, carry_lo;
+    static_assert(sizeof(unsigned long long) == sizeof(uint64_t));
+    uint64_t x;
+    uint64_t lo;
+    if (!BN256_IS_CONSTANT_EVALUATED) {
+        carry_x = __builtin_add_overflow(hl, lh, &x);
+        carry_lo = __builtin_add_overflow(ll, x << 32, &lo);
+    }
+    else {
+        x = hl + lh;
+        carry_x = x < hl;
+        lo = ll + (x << 32);
+        carry_lo = lo < ll;
+    }
+    *hi = hh + (x >> 32) + (carry_x << 32) + carry_lo;
+    return lo;
+#endif
 }
 
 constexpr bool subborrow_u256(bool carry, const uint64_t* a, const uint64_t* b, uint64_t* c) noexcept {
