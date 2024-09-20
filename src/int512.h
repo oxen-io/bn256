@@ -281,7 +281,7 @@ constexpr int512_t operator""_i512() {
       ++i;
 
    while (char digit = str[i++]) {
-      if (digit < '0' && digit > '9')
+      if (digit < '0' || digit > '9')
          throw "invalid digits";
       r *= 10;
       r += (digit - '0');
